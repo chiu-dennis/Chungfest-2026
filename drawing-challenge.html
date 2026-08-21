@@ -139,11 +139,11 @@
     <div id="promptText" style="display:none;"></div>
   </div>
 
-  <div id="timer">90s</div>
+  <div id="timer">120s</div>
 
   <button class="reveal" id="revealBtn" onclick="revealPrompt()">REVEAL PROMPT</button>
   <button class="skip" id="dontKnowBtn" onclick="dontKnowIt()" disabled>🔄 DON'T KNOW IT — NEW PROMPT</button>
-  <button class="start" id="startBtn" onclick="startTimer()" disabled>START 90s TIMER</button>
+  <button class="start" id="startBtn" onclick="startTimer()" disabled>START 120s TIMER</button>
   <button class="correct" id="correctBtn" onclick="scorePoint()" disabled>✅ TEAM GUESSED IT!</button>
   <button class="skip" id="skipBtn" onclick="nextRound(false)" disabled>⏭️ NO GUESS — NEXT TURN</button>
   <button class="reset" onclick="resetGame()">Reset Game</button>
@@ -173,17 +173,41 @@ const KIDS_PROMPTS = [
 ];
 
 const ADULT_PROMPTS = [
-  "Wild Blue Acres cabin", "Kayak race", "Home run derby swing",
-  "Golf swing", "Soccer penalty kick", "Foosball goal", "Pinball machine",
-  "Air hockey table", "Ping pong paddle", "Relay race baton handoff",
-  "Chungfest trophy", "Headbands card on forehead", "Jackbox controller",
-  "Straw Hat", "Zoro's three swords", "Tanjiro's sword", "Naruto's headband",
-  "Sailor Moon's tiara", "Totoro", "Pikachu",
-  "Kangaroo", "Giraffe", "Octopus", "Penguin", "Lion",
-  "S'mores over a campfire", "Cabin at the lake", "Jigsaw puzzle",
-  "Sunscreen bottle", "Beach ball", "Fishing rod", "Grill with burgers",
-  "Lawn chair", "Cooler with ice", "Flip flops", "Tug of war rope",
-  "Bonfire", "Board game", "Deck of cards", "Frisbee", "Fireworks"
+  "A detective solving a mystery with a magnifying glass",
+  "A scientist mixing chemicals in a lab",
+  "A rock band performing on stage",
+  "A blacksmith forging a sword",
+  "A tightrope walker crossing between buildings",
+  "A submarine exploring the deep sea",
+  "A construction crew building a skyscraper",
+  "A chef flambéing a dish in the kitchen",
+  "A skydiver free falling with a parachute",
+  "A game show host presenting a big prize",
+  "A beekeeper harvesting honey from a hive",
+  "A lighthouse keeper during a thunderstorm",
+  "A hot air balloon floating over mountains",
+  "An archaeologist digging up dinosaur bones",
+  "A surgeon performing an operation",
+  "A tailor sewing a suit on a mannequin",
+  "An astronaut fixing a satellite in space",
+  "A judge banging a gavel in court",
+  "A magician sawing a person in half",
+  "A tornado ripping through a farm",
+  "A mountain climber scaling a cliff",
+  "A DJ spinning records at a party",
+  "A pilot landing a plane in a storm",
+  "A referee blowing a whistle during a foul",
+  "A snake charmer playing a flute",
+  "A window washer on a skyscraper",
+  "A lumberjack chopping down a tree",
+  "A fisherman reeling in a giant fish",
+  "A boxer throwing a knockout punch",
+  "A carpenter building a treehouse",
+  "A skier jumping off a ramp",
+  "A photographer taking a wildlife photo",
+  "A sculptor carving a marble statue",
+  "A tightrope-walking circus performer juggling fire",
+  "A diver exploring a coral reef with sharks nearby"
 ];
 
 let shuffledKids = [];
@@ -195,7 +219,7 @@ let roundNum = 1;
 let adultScore = 0;
 let kidScore = 0;
 let timerInterval;
-let timeLeft = 90;
+let timeLeft = 120;
 
 function shuffle(arr) {
   const a = arr.slice();
@@ -259,7 +283,7 @@ function startTimer() {
   document.getElementById('correctBtn').disabled = false;
   document.getElementById('skipBtn').disabled = false;
 
-  timeLeft = 90;
+  timeLeft = 120;
   document.getElementById('timer').textContent = timeLeft + 's';
   timerInterval = setInterval(() => {
     timeLeft--;
@@ -292,7 +316,7 @@ function nextRound(scored) {
   document.getElementById('promptHidden').style.display = 'block';
   document.getElementById('promptHidden').textContent = 'Artist: tap "Reveal Prompt" and look only you.';
   document.getElementById('promptText').style.display = 'none';
-  document.getElementById('timer').textContent = '90s';
+  document.getElementById('timer').textContent = '120s';
 
   document.getElementById('revealBtn').disabled = false;
   document.getElementById('dontKnowBtn').disabled = true;
@@ -318,7 +342,7 @@ function resetGame() {
   document.getElementById('promptHidden').style.display = 'block';
   document.getElementById('promptHidden').textContent = 'Artist: tap "Reveal Prompt" and look only you.';
   document.getElementById('promptText').style.display = 'none';
-  document.getElementById('timer').textContent = '90s';
+  document.getElementById('timer').textContent = '120s';
   document.getElementById('revealBtn').disabled = false;
   document.getElementById('dontKnowBtn').disabled = true;
   document.getElementById('startBtn').disabled = true;

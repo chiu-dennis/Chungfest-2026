@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chungfest 2026 Anime Trivia - Round 2</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1e3a5f;
+    margin: 0;
+    padding: 16px;
+    color: #1a1a1a;
+  }
+  .card {
+    max-width: 480px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px 0;
+    color: #1e3a5f;
+  }
+  .sub {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+  }
+  #timer {
+    font-size: 36px;
+    font-weight: 700;
+    text-align: center;
+    color: #1e3a5f;
+    font-variant-numeric: tabular-nums;
+    margin: 6px 0 16px 0;
+  }
+  #progress {
+    text-align: center;
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .qtext {
+    font-size: 19px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    color: white;
+  }
+  .badge.op { background: #c0392b; }
+  .badge.ds { background: #6a3fa0; }
+  .badge.jjk { background: #1a237e; }
+  .badge.pkmn { background: #f1c40f; color: #1a1a1a; }
+  .choice {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-size: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+  }
+  .choice:active { background: #f0f0f0; }
+  .choice.selected { border-color: #1e3a5f; background: #e8f0fe; }
+  .choice.correct { border-color: #2e7d32; background: #e6f4ea; }
+  .choice.incorrect { border-color: #d62828; background: #fdecea; }
+  button.nav {
+    width: 100%;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #d62828;
+    color: white;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+  button.nav:active { background: #a81e1e; }
+  button.nav:disabled { background: #ccc; }
+  #startScreen, #resultScreen { text-align: center; }
+  #nameInput {
+    width: 100%;
+    font-size: 18px;
+    padding: 10px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  #resultScreen .bigscore {
+    font-size: 44px;
+    font-weight: 800;
+    color: #1e3a5f;
+    margin: 6px 0 16px 0;
+  }
+  .hidden { display: none; }
+  .series-list {
+    font-size: 14px;
+    color: #444;
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div id="startScreen">
+    <h1>🏴‍☠️ Chungfest 2026</h1>
+    <div class="sub" style="margin-bottom:16px;">Anime Trivia Showdown — Round 2</div>
+    <div class="series-list">
+      20 brand-new questions covering<br>
+      <strong>One Piece</strong> · <strong>Demon Slayer</strong> · <strong>Jujutsu Kaisen</strong> · <strong>Pokemon</strong><br>
+      Mostly easy, with a few tough ones mixed in.<br>
+      Same questions for everyone — even playing field.
+    </div>
+    <input type="text" id="nameInput" placeholder="Enter your name">
+    <button class="nav" onclick="startTest()">START TRIVIA</button>
+  </div>
+
+  <div id="testScreen" class="hidden">
+    <div id="timer">0.0s</div>
+    <div id="progress"></div>
+    <div id="questionArea"></div>
+    <button class="nav" id="nextBtn" onclick="nextQuestion()" disabled>NEXT</button>
+  </div>
+
+  <div id="resultScreen" class="hidden">
+    <h1 id="resultName">Nice work!</h1>
+    <div class="sub">Final Time</div>
+    <div class="bigscore" id="finalTime" style="font-size:28px;">0.0s</div>
+    <div class="sub">Score</div>
+    <div class="bigscore" id="finalScore">0 / 15</div>
+    <button class="nav" onclick="location.reload()">RUN NEXT PERSON</button>
+  </div>
+
+</div>
+
+<script>
+// Fixed question set - identical for every competitor, so it's an even playing field.
+const QUESTIONS = [
+  { series: "op", label: "ONE PIECE", q: "What is Luffy's dream/goal throughout the series?", choices: ["Become the strongest swordsman", "Become the Pirate King", "Find his father", "Become a marine admiral"], correct: 1 },
+  { series: "op", label: "ONE PIECE", q: "What is the name of Luffy's older brother figure who sacrifices himself?", choices: ["Sabo", "Ace", "Shanks", "Law"], correct: 1 },
+  { series: "op", label: "ONE PIECE", q: "What is the profession/dream of Nami, the Straw Hat navigator?", choices: ["To draw a map of the whole world", "To become a doctor", "To find a legendary treasure", "To become a chef"], correct: 0 },
+  { series: "op", label: "ONE PIECE", q: "What color is Luffy's signature straw hat?", choices: ["Black with a red band", "Brown with a blue band", "Yellow with a green band", "White with no band"], correct: 0 },
+  { series: "op", label: "ONE PIECE — TOUGH", q: "What is the name of the powerful pirate crew led by Whitebeard, considered the strongest man in the world?", choices: ["Blackbeard Pirates", "Whitebeard Pirates", "Big Mom Pirates", "Beast Pirates"], correct: 1 },
+  { series: "ds", label: "DEMON SLAYER", q: "What was Tanjiro's original family job before becoming a demon slayer?", choices: ["Blacksmith", "Charcoal maker", "Farmer", "Fisherman"], correct: 1 },
+  { series: "ds", label: "DEMON SLAYER", q: "What does Nezuko use to hide her fangs and stay calm around humans?", choices: ["A muzzle made of bamboo", "A mask", "A hood", "A scarf"], correct: 0 },
+  { series: "ds", label: "DEMON SLAYER", q: "What animal is Zenitsu often seen riding into battle?", choices: ["A wild boar", "A horse named Hikage", "A giant bird", "A wolf"], correct: 1 },
+  { series: "ds", label: "DEMON SLAYER", q: "What special material is needed to forge a demon slayer's sword?", choices: ["Nichirin ore", "Sun-touched steel", "Moonlight iron", "Cursed metal"], correct: 0 },
+  { series: "ds", label: "DEMON SLAYER — TOUGH", q: "What color does a Nichirin blade turn when wielded by someone with a strong 'sun breathing' affinity?", choices: ["Blue", "Red", "Black", "It varies by the wielder"], correct: 3 },
+  { series: "jjk", label: "JUJUTSU KAISEN", q: "What sport club is Yuji part of before becoming a jujutsu sorcerer?", choices: ["Track and field", "Occult Research Club", "Boxing club", "Kendo club"], correct: 1 },
+  { series: "jjk", label: "JUJUTSU KAISEN", q: "What is the name of Yuji's classmate with pink hair and a playful personality?", choices: ["Nobara Kugisaki", "Maki Zenin", "Momo Nishimiya", "Kasumi Miwa"], correct: 0 },
+  { series: "jjk", label: "JUJUTSU KAISEN", q: "What weapon does Nobara Kugisaki primarily use?", choices: ["A katana", "A hammer and nails", "A bow and arrow", "Twin daggers"], correct: 1 },
+  { series: "jjk", label: "JUJUTSU KAISEN", q: "What is Megumi Fushiguro's cursed technique called?", choices: ["Boogie Woogie", "Ten Shadows Technique", "Straw Doll Technique", "Copy"], correct: 1 },
+  { series: "jjk", label: "JUJUTSU KAISEN — TOUGH", q: "What is the name of the special-grade cursed object that Yuji's grandfather connects him to before dying?", choices: ["A cursed finger", "A cursed talisman", "A death wish to help others", "A protective amulet"], correct: 2 },
+  { series: "pkmn", label: "POKEMON", q: "What is the name of Ash's rival with spiky hair who also started in Pallet Town?", choices: ["Paul", "Gary Oak", "Trip", "Barry"], correct: 1 },
+  { series: "pkmn", label: "POKEMON", q: "What is the very first Pokemon most players/Ash can typically choose in the games/anime?", choices: ["Fire, Water, or Grass starter", "Only Electric type", "Only Legendary Pokemon", "Any random Pokemon"], correct: 0 },
+  { series: "pkmn", label: "POKEMON", q: "What is Team Rocket's motto famous for starting with?", choices: ["'Prepare for trouble!'", "'Gotta catch 'em all!'", "'To infinity and beyond!'", "'It's dangerous to go alone!'"], correct: 0 },
+  { series: "pkmn", label: "POKEMON", q: "What type is super effective against Water-type Pokemon?", choices: ["Fire", "Grass", "Fighting", "Normal"], correct: 1 },
+  { series: "pkmn", label: "POKEMON — TOUGH", q: "What is the name of the legendary bird trio in the original Kanto region games?", choices: ["Articuno, Zapdos, Moltres", "Raikou, Entei, Suicune", "Uxie, Mesprit, Azelf", "Regirock, Regice, Registeel"], correct: 0 }
+];
+
+let currentIndex = 0;
+let answers = [];
+let startTime, timerInterval;
+
+function startTest() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('testScreen').classList.remove('hidden');
+  currentIndex = 0;
+  answers = new Array(QUESTIONS.length).fill(null);
+
+  startTime = Date.now();
+  timerInterval = setInterval(() => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    document.getElementById('timer').textContent = elapsed.toFixed(1) + 's';
+  }, 100);
+
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[currentIndex];
+  document.getElementById('progress').textContent = `Question ${currentIndex + 1} of ${QUESTIONS.length}`;
+  document.getElementById('nextBtn').disabled = true;
+  document.getElementById('nextBtn').textContent = currentIndex === QUESTIONS.length - 1 ? 'FINISH' : 'NEXT';
+
+  const area = document.getElementById('questionArea');
+  const badgeClass = q.series;
+  let html = `<div class="badge ${badgeClass}">${q.label}</div>`;
+  html += `<div class="qtext">${q.q}</div>`;
+  q.choices.forEach((c, i) => {
+    html += `<button class="choice" id="choice${i}" onclick="selectChoice(${i})">${c}</button>`;
+  });
+  area.innerHTML = html;
+}
+
+function selectChoice(i) {
+  if (answers[currentIndex] !== null) return; // already answered
+  answers[currentIndex] = i;
+  const q = QUESTIONS[currentIndex];
+  for (let j = 0; j < q.choices.length; j++) {
+    const btn = document.getElementById('choice' + j);
+    btn.style.pointerEvents = 'none';
+    if (j === q.correct) btn.classList.add('correct');
+    else if (j === i) btn.classList.add('incorrect');
+  }
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function nextQuestion() {
+  if (currentIndex < QUESTIONS.length - 1) {
+    currentIndex++;
+    renderQuestion();
+  } else {
+    finishTest();
+  }
+}
+
+function finishTest() {
+  clearInterval(timerInterval);
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  let correct = 0;
+  QUESTIONS.forEach((q, i) => {
+    if (answers[i] === q.correct) correct++;
+  });
+
+  const name = document.getElementById('nameInput').value.trim() || 'Player';
+  document.getElementById('testScreen').classList.add('hidden');
+  document.getElementById('resultScreen').classList.remove('hidden');
+  document.getElementById('resultName').textContent = name + "'s Results";
+  document.getElementById('finalTime').textContent = elapsed + 's';
+  document.getElementById('finalScore').textContent = correct + ' / ' + QUESTIONS.length;
+}
+</script>
+</body>
+</html>

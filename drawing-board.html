@@ -134,7 +134,7 @@
 </style>
 </head>
 <body>
-  <div id="timer">90</div>
+  <div id="timer">120</div>
   <div id="toolRow"></div>
   <div id="colorRow"></div>
   <div id="sizeRow"></div>
@@ -142,7 +142,7 @@
     <canvas id="drawCanvas"></canvas>
   </div>
   <div id="controls">
-    <button id="startBtn" onclick="startTimer()">START 90s TIMER</button>
+    <button id="startBtn" onclick="startTimer()">START 120s TIMER</button>
     <button id="clearBtn" onclick="clearCanvas()">CLEAR</button>
     <button id="undoBtn" onclick="undoLast()" disabled>UNDO</button>
     <button id="resetTimerBtn" onclick="resetTimer()">RESET</button>
@@ -363,7 +363,7 @@ function clearCanvas() {
 }
 
 // --- Timer ---
-let timeLeft = 90;
+let timeLeft = 120;
 let timerInterval = null;
 const timerEl = document.getElementById('timer');
 const startBtn = document.getElementById('startBtn');
@@ -391,7 +391,7 @@ function startTimer() {
 function resetTimer() {
   clearInterval(timerInterval);
   timerInterval = null;
-  timeLeft = 90;
+  timeLeft = 120;
   startBtn.disabled = false;
   renderTimer();
   clearCanvas();

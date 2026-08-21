@@ -113,16 +113,6 @@
   button.skip { background: #999; }
   button.reset { background: #666; font-size: 13px; padding: 10px; }
   button:active { opacity: 0.85; }
-  #drawCanvas {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    background: white;
-    border: 2px solid #1e3a5f;
-    border-radius: 12px;
-    margin-bottom: 8px;
-    touch-action: none;
-    display: block;
-  }
 </style>
 </head>
 <body>
@@ -151,9 +141,6 @@
 
   <div id="timer">90s</div>
 
-  <canvas id="drawCanvas" style="display:none;"></canvas>
-  <button class="skip" id="clearBtn" onclick="clearCanvas()" style="display:none;">🧹 CLEAR DRAWING</button>
-
   <button class="reveal" id="revealBtn" onclick="revealPrompt()">REVEAL PROMPT</button>
   <button class="skip" id="dontKnowBtn" onclick="dontKnowIt()" disabled>🔄 DON'T KNOW IT — NEW PROMPT</button>
   <button class="start" id="startBtn" onclick="startTimer()" disabled>START 90s TIMER</button>
@@ -165,16 +152,24 @@
 <script>
 // Two prompt pools: kids draw from an easier pool, adults get the full range.
 const KIDS_PROMPTS = [
-  "Cat", "Dog", "Sun", "Tree", "Pizza", "Football", "Star", "Fish",
-  "Bird", "House", "Car", "Boat", "Apple", "Ice cream cone", "Rainbow",
-  "Robot", "Dinosaur", "Elephant", "Pikachu", "Kayak", "Tent",
-  "Mountain", "Campfire", "Butterfly", "Snowman", "Ghost", "Balloon",
-  "Turtle", "Octopus", "Penguin", "Airplane", "Rocket ship",
-  "Ash Ketchum's hat", "Ninja headband",
-  "Pirate ship", "Treasure chest", "Dragon", "Unicorn", "Mermaid",
-  "Volcano erupting", "Roller coaster", "Sandcastle", "Waterfall",
-  "Firetruck", "School bus", "Birthday cake", "Superhero cape",
-  "Soccer goal", "Spaceship landing"
+  "A shark attacking a boat", "An astronaut floating in space",
+  "A knight fighting a dragon", "A wizard casting a spell",
+  "A pirate finding treasure", "A robot dancing",
+  "A dinosaur eating leaves", "Building a sandcastle at the beach",
+  "A superhero saving the day", "A ninja jumping across rooftops",
+  "A dragon breathing fire", "A mermaid swimming with fish",
+  "A rocket blasting off to the moon", "A lion roaring in the jungle",
+  "A snowman melting in the sun", "A witch flying on a broomstick",
+  "A soccer player scoring a goal", "A chef cooking pizza",
+  "A farmer milking a cow", "A monster hiding under a bed",
+  "A firefighter putting out a fire", "A spider spinning a web",
+  "A kangaroo jumping over a fence", "A volcano erupting",
+  "A roller coaster going upside down", "A penguin sliding on ice",
+  "A octopus playing the drums", "A dog chasing its tail",
+  "A unicorn jumping over a rainbow", "A treasure map with an X",
+  "A whale jumping out of the ocean", "A bear catching fish in a river",
+  "A magician pulling a rabbit out of a hat",
+  "An alien landing a UFO", "A knight riding a horse into battle"
 ];
 
 const ADULT_PROMPTS = [
@@ -213,77 +208,6 @@ function shuffle(arr) {
 
 shuffledKids = shuffle(KIDS_PROMPTS);
 shuffledAdults = shuffle(ADULT_PROMPTS);
-
-// --- Drawing canvas setup ---
-const canvas = document.getElementById('drawCanvas');
-const ctx = canvas.getContext('2d');
-let drawing = false;
-let lastX = 0, lastY = 0;
-
-function resizeCanvas() {
-  const rect = canvas.getBoundingClientRect();
-  const imgData = canvas.width > 0 ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = '#1e3a5f';
-  ctx.fillStyle = 'white';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  if (imgData) ctx.putImageData(imgData, 0, 0);
-}
-
-function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return { x: clientX - rect.left, y: clientY - rect.top };
-}
-
-function startDraw(e) {
-  drawing = true;
-  const pos = getPos(e);
-  lastX = pos.x; lastY = pos.y;
-}
-
-function moveDraw(e) {
-  if (!drawing) return;
-  e.preventDefault();
-  const pos = getPos(e);
-  ctx.beginPath();
-  ctx.moveTo(lastX, lastY);
-  ctx.lineTo(pos.x, pos.y);
-  ctx.stroke();
-  lastX = pos.x; lastY = pos.y;
-}
-
-function endDraw() { drawing = false; }
-
-canvas.addEventListener('mousedown', startDraw);
-canvas.addEventListener('mousemove', moveDraw);
-canvas.addEventListener('mouseup', endDraw);
-canvas.addEventListener('mouseleave', endDraw);
-canvas.addEventListener('touchstart', startDraw);
-canvas.addEventListener('touchmove', moveDraw);
-canvas.addEventListener('touchend', endDraw);
-
-function clearCanvas() {
-  ctx.fillStyle = 'white';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function showCanvas() {
-  canvas.style.display = 'block';
-  document.getElementById('clearBtn').style.display = 'block';
-  resizeCanvas();
-  clearCanvas();
-}
-
-function hideCanvas() {
-  canvas.style.display = 'none';
-  document.getElementById('clearBtn').style.display = 'none';
-}
 
 function updateBanner() {
   const banner = document.getElementById('turnBanner');
@@ -334,7 +258,6 @@ function startTimer() {
   document.getElementById('dontKnowBtn').disabled = true;
   document.getElementById('correctBtn').disabled = false;
   document.getElementById('skipBtn').disabled = false;
-  showCanvas();
 
   timeLeft = 90;
   document.getElementById('timer').textContent = timeLeft + 's';
@@ -362,7 +285,6 @@ function scorePoint() {
 
 function nextRound(scored) {
   clearInterval(timerInterval);
-  hideCanvas();
   currentTeam = currentTeam === 'adults' ? 'kids' : 'adults';
   roundNum++;
   updateBanner();
@@ -382,7 +304,6 @@ function nextRound(scored) {
 function resetGame() {
   if (!confirm('Reset the whole drawing game?')) return;
   clearInterval(timerInterval);
-  hideCanvas();
   shuffledKids = shuffle(KIDS_PROMPTS);
   shuffledAdults = shuffle(ADULT_PROMPTS);
   kidsIndex = 0;

@@ -73,6 +73,29 @@
     background: white;
     border-radius: 50%;
   }
+  #toolRow {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+  }
+  .toolBtn {
+    flex: 0 0 68px;
+    height: 44px;
+    border-radius: 10px;
+    border: 3px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.15);
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .toolBtn.active {
+    border-color: white;
+    background: rgba(255,255,255,0.35);
+  }
   #canvasWrap {
     flex: 1;
     min-height: 0;
@@ -105,11 +128,14 @@
   #startBtn { background: #2e7d32; color: white; }
   #startBtn:disabled { background: #999; }
   #clearBtn { background: #999; color: white; flex: 0 0 130px; }
+  #undoBtn { background: #1e88e5; color: white; flex: 0 0 130px; }
+  #undoBtn:disabled { background: #ccc; }
   #resetTimerBtn { background: #d62828; color: white; flex: 0 0 130px; }
 </style>
 </head>
 <body>
   <div id="timer">90</div>
+  <div id="toolRow"></div>
   <div id="colorRow"></div>
   <div id="sizeRow"></div>
   <div id="canvasWrap">
@@ -118,6 +144,7 @@
   <div id="controls">
     <button id="startBtn" onclick="startTimer()">START 90s TIMER</button>
     <button id="clearBtn" onclick="clearCanvas()">CLEAR</button>
+    <button id="undoBtn" onclick="undoLast()" disabled>UNDO</button>
     <button id="resetTimerBtn" onclick="resetTimer()">RESET</button>
   </div>
 
@@ -126,6 +153,49 @@ const canvas = document.getElementById('drawCanvas');
 const ctx = canvas.getContext('2d');
 let drawing = false;
 let lastX = 0, lastY = 0;
+
+let currentTool = 'pen'; // 'pen' | 'eraser' | 'fill'
+let undoStack = [];
+const UNDO_LIMIT = 20;
+
+function pushUndo() {
+  try {
+    undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+    document.getElementById('undoBtn').disabled = false;
+  } catch (e) { /* canvas not ready yet */ }
+}
+
+function undoLast() {
+  if (undoStack.length === 0) return;
+  const imgData = undoStack.pop();
+  ctx.putImageData(imgData, 0, 0);
+  if (undoStack.length === 0) document.getElementById('undoBtn').disabled = true;
+}
+
+function buildToolRow() {
+  const row = document.getElementById('toolRow');
+  const tools = [
+    { id: 'pen', icon: '✏️' },
+    { id: 'eraser', icon: '🧽' },
+    { id: 'fill', icon: '🪣' }
+  ];
+  tools.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'toolBtn' + (i === 0 ? ' active' : '');
+    btn.textContent = t.icon;
+    btn.onclick = () => selectTool(t.id, btn);
+    row.appendChild(btn);
+  });
+}
+
+function selectTool(id, btn) {
+  currentTool = id;
+  document.querySelectorAll('.toolBtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+buildToolRow();
 
 const COLORS = ['#1a1a1a', '#d62828', '#1e88e5', '#2e7d32', '#f39c12', '#8e44ad', '#e91e63', '#00897b'];
 let currentColor = COLORS[0];
@@ -200,19 +270,75 @@ function getPos(e) {
   return { x: clientX - rect.left, y: clientY - rect.top };
 }
 
+function hexToRgb(hex) {
+  const v = parseInt(hex.slice(1), 16);
+  return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 };
+}
+
+function colorsMatch(a, b, tolerance) {
+  return Math.abs(a[0] - b[0]) <= tolerance &&
+         Math.abs(a[1] - b[1]) <= tolerance &&
+         Math.abs(a[2] - b[2]) <= tolerance &&
+         Math.abs(a[3] - b[3]) <= tolerance;
+}
+
+function floodFillAt(x, y) {
+  x = Math.floor(x); y = Math.floor(y);
+  const w = canvas.width, h = canvas.height;
+  if (x < 0 || y < 0 || x >= w || y >= h) return;
+
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+  const startPos = (y * w + x) * 4;
+  const startColor = [data[startPos], data[startPos + 1], data[startPos + 2], data[startPos + 3]];
+  const fillRgb = hexToRgb(currentColor);
+  const fillColor = [fillRgb.r, fillRgb.g, fillRgb.b, 255];
+
+  if (colorsMatch(startColor, fillColor, 10)) return; // already filled with this color
+
+  const tolerance = 60;
+  const stack = [[x, y]];
+  while (stack.length) {
+    const [cx, cy] = stack.pop();
+    if (cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
+    const pos = (cy * w + cx) * 4;
+    if (!colorsMatch([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]], startColor, tolerance)) continue;
+    data[pos] = fillColor[0];
+    data[pos + 1] = fillColor[1];
+    data[pos + 2] = fillColor[2];
+    data[pos + 3] = 255;
+    stack.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+  }
+  ctx.putImageData(imageData, 0, 0);
+}
+
 function startDraw(e) {
-  drawing = true;
   const pos = getPos(e);
+  if (currentTool === 'fill') {
+    pushUndo();
+    floodFillAt(pos.x, pos.y);
+    return;
+  }
+  pushUndo();
+  drawing = true;
   lastX = pos.x; lastY = pos.y;
 }
 
 function moveDraw(e) {
   if (!drawing) return;
+  if (currentTool === 'fill') return;
   e.preventDefault();
   const pos = getPos(e);
   ctx.beginPath();
   ctx.moveTo(lastX, lastY);
   ctx.lineTo(pos.x, pos.y);
+  if (currentTool === 'eraser') {
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(currentSize * 3, 24);
+  } else {
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = currentSize;
+  }
   ctx.stroke();
   lastX = pos.x; lastY = pos.y;
 }
@@ -231,6 +357,7 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 function clearCanvas() {
+  pushUndo();
   ctx.fillStyle = 'white';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }

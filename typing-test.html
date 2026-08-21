@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chungfest 2026 Typing Challenge</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1e3a5f;
+    margin: 0;
+    padding: 16px;
+    color: #1a1a1a;
+  }
+  .card {
+    max-width: 480px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px 0;
+    color: #1e3a5f;
+  }
+  .sub {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+  }
+  #timer {
+    font-size: 40px;
+    font-weight: 700;
+    text-align: center;
+    color: #1e3a5f;
+    font-variant-numeric: tabular-nums;
+    margin: 10px 0 16px 0;
+  }
+  #passage {
+    font-size: 19px;
+    line-height: 1.7;
+    background: #f5f5f5;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+    letter-spacing: 0.3px;
+  }
+  #passage span.correct { color: #2e7d32; }
+  #passage span.incorrect { color: #d62828; text-decoration: underline; }
+  #passage span.current { background: #ffe08a; border-radius: 2px; }
+  #passage span.pending { color: #999; }
+  textarea {
+    width: 100%;
+    font-size: 18px;
+    padding: 12px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    resize: none;
+    font-family: inherit;
+  }
+  button {
+    width: 100%;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #d62828;
+    color: white;
+    margin-top: 16px;
+    cursor: pointer;
+  }
+  button:active { background: #a81e1e; }
+  #startScreen, #resultScreen { text-align: center; }
+  #nameInput {
+    width: 100%;
+    font-size: 18px;
+    padding: 10px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  #resultScreen .bigscore {
+    font-size: 40px;
+    font-weight: 800;
+    color: #1e3a5f;
+    margin: 6px 0 16px 0;
+  }
+  .statrow {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 8px;
+  }
+  .stat { text-align: center; }
+  .stat .num { font-size: 28px; font-weight: 800; color: #1e3a5f; }
+  .stat .label { font-size: 12px; color: #666; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div id="startScreen">
+    <h1>⌨️ Chungfest 2026</h1>
+    <div class="sub" style="margin-bottom:16px;">Typing Challenge</div>
+    <div class="sub">Everyone types the exact same passage — even playing field. Timer starts on your first keystroke.</div>
+    <input type="text" id="nameInput" placeholder="Enter your name">
+    <button onclick="startTest()">START TEST</button>
+  </div>
+
+  <div id="testScreen" class="hidden">
+    <div id="timer">0.0s</div>
+    <div id="passage"></div>
+    <textarea id="typeInput" rows="4" placeholder="Start typing here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+    <button onclick="submitTest()">SUBMIT</button>
+  </div>
+
+  <div id="resultScreen" class="hidden">
+    <h1 id="resultName">Nice work!</h1>
+    <div class="statrow">
+      <div class="stat"><div class="num" id="finalWPM">0</div><div class="label">WPM</div></div>
+      <div class="stat"><div class="num" id="finalAcc">0%</div><div class="label">Accuracy</div></div>
+      <div class="stat"><div class="num" id="finalTime">0.0s</div><div class="label">Time</div></div>
+    </div>
+    <button onclick="location.reload()">RUN NEXT PERSON</button>
+  </div>
+
+</div>
+
+<script>
+// Fixed passage - identical for every competitor, so it's an even playing field.
+const PASSAGE = "Welcome to Chungfest 2026 at Wild Blue Acres, where the whole family has gathered for a week of friendly competition. Ethan and Christian are off in college now, Tessia is almost a teenager, and everyone still argues about who is actually the fastest typer. Kathy has claimed the family typing crown for years, so this is the moment to find out if anyone can finally take the throne. Nikos, Nathan, and the rest of the kids are about to dominate Chungfest for years to come.";
+
+let startTime, timerInterval, started = false;
+
+function renderPassage(typed) {
+  const el = document.getElementById('passage');
+  let html = '';
+  for (let i = 0; i < PASSAGE.length; i++) {
+    const char = PASSAGE[i];
+    if (i < typed.length) {
+      html += `<span class="${typed[i] === char ? 'correct' : 'incorrect'}">${escapeHtml(char)}</span>`;
+    } else if (i === typed.length) {
+      html += `<span class="current">${escapeHtml(char)}</span>`;
+    } else {
+      html += `<span class="pending">${escapeHtml(char)}</span>`;
+    }
+  }
+  el.innerHTML = html;
+}
+
+function escapeHtml(c) {
+  if (c === '<') return '&lt;';
+  if (c === '>') return '&gt;';
+  if (c === '&') return '&amp;';
+  return c;
+}
+
+function startTest() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('testScreen').classList.remove('hidden');
+  renderPassage('');
+  const input = document.getElementById('typeInput');
+  input.value = '';
+  input.focus();
+
+  input.addEventListener('input', () => {
+    if (!started) {
+      started = true;
+      startTime = Date.now();
+      timerInterval = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        document.getElementById('timer').textContent = elapsed.toFixed(1) + 's';
+      }, 100);
+    }
+    let typed = input.value;
+    if (typed.length > PASSAGE.length) {
+      typed = typed.substring(0, PASSAGE.length);
+      input.value = typed;
+    }
+    renderPassage(typed);
+    if (typed.length === PASSAGE.length) {
+      submitTest();
+    }
+  });
+}
+
+function submitTest() {
+  if (!started) return;
+  clearInterval(timerInterval);
+  const elapsed = (Date.now() - startTime) / 1000;
+  const typed = document.getElementById('typeInput').value;
+
+  let correctChars = 0;
+  for (let i = 0; i < typed.length; i++) {
+    if (typed[i] === PASSAGE[i]) correctChars++;
+  }
+  const accuracy = typed.length > 0 ? Math.round((correctChars / typed.length) * 100) : 0;
+  const wpm = Math.round((correctChars / 5) / (elapsed / 60));
+
+  const name = document.getElementById('nameInput').value.trim() || 'Player';
+  document.getElementById('testScreen').classList.add('hidden');
+  document.getElementById('resultScreen').classList.remove('hidden');
+  document.getElementById('resultName').textContent = name + "'s Results";
+  document.getElementById('finalWPM').textContent = wpm;
+  document.getElementById('finalAcc').textContent = accuracy + '%';
+  document.getElementById('finalTime').textContent = elapsed.toFixed(1) + 's';
+}
+</script>
+</body>
+</html>

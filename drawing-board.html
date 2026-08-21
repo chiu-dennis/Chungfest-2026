@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chungfest 2026 - Drawing Board</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: #1e3a5f;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+  }
+  #timer {
+    text-align: center;
+    font-size: 14vh;
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+  #timer.warning { color: #ffb400; }
+  #timer.danger { color: #ff4d4d; }
+  #canvasWrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+  }
+  #drawCanvas {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    background: white;
+    border-radius: 16px;
+    touch-action: none;
+    display: block;
+  }
+  #controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    flex-shrink: 0;
+  }
+  button {
+    flex: 1;
+    font-size: 22px;
+    font-weight: 800;
+    padding: 18px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  #startBtn { background: #2e7d32; color: white; }
+  #startBtn:disabled { background: #999; }
+  #clearBtn { background: #999; color: white; flex: 0 0 130px; }
+  #resetTimerBtn { background: #d62828; color: white; flex: 0 0 130px; }
+</style>
+</head>
+<body>
+  <div id="timer">60</div>
+  <div id="canvasWrap">
+    <canvas id="drawCanvas"></canvas>
+  </div>
+  <div id="controls">
+    <button id="startBtn" onclick="startTimer()">START 60s TIMER</button>
+    <button id="clearBtn" onclick="clearCanvas()">CLEAR</button>
+    <button id="resetTimerBtn" onclick="resetTimer()">RESET</button>
+  </div>
+
+<script>
+const canvas = document.getElementById('drawCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let lastX = 0, lastY = 0;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  const imgData = (canvas.width > 0 && canvas.height > 0) ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (imgData) ctx.putImageData(imgData, 0, 0);
+}
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function startDraw(e) {
+  drawing = true;
+  const pos = getPos(e);
+  lastX = pos.x; lastY = pos.y;
+}
+
+function moveDraw(e) {
+  if (!drawing) return;
+  e.preventDefault();
+  const pos = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  lastX = pos.x; lastY = pos.y;
+}
+
+function endDraw() { drawing = false; }
+
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', moveDraw);
+canvas.addEventListener('mouseup', endDraw);
+canvas.addEventListener('mouseleave', endDraw);
+canvas.addEventListener('touchstart', startDraw);
+canvas.addEventListener('touchmove', moveDraw);
+canvas.addEventListener('touchend', endDraw);
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function clearCanvas() {
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+// --- Timer ---
+let timeLeft = 60;
+let timerInterval = null;
+const timerEl = document.getElementById('timer');
+const startBtn = document.getElementById('startBtn');
+
+function renderTimer() {
+  timerEl.textContent = timeLeft;
+  timerEl.className = '';
+  if (timeLeft <= 10) timerEl.classList.add('danger');
+  else if (timeLeft <= 20) timerEl.classList.add('warning');
+}
+
+function startTimer() {
+  if (timerInterval) return;
+  startBtn.disabled = true;
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    renderTimer();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }, 1000);
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timeLeft = 60;
+  startBtn.disabled = false;
+  renderTimer();
+  clearCanvas();
+}
+
+renderTimer();
+</script>
+</body>
+</html>

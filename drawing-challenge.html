@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chungfest 2026 Drawing Challenge</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1e3a5f;
+    margin: 0;
+    padding: 16px;
+    color: #1a1a1a;
+  }
+  .card {
+    max-width: 480px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 4px 0;
+    color: #1e3a5f;
+    text-align: center;
+  }
+  .sub {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .scorebar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .scorebox {
+    flex: 1;
+    text-align: center;
+    border-radius: 12px;
+    padding: 14px 8px;
+  }
+  .scorebox.adults { background: #e8f0fe; }
+  .scorebox.kids { background: #fdecea; }
+  .scorebox .num { font-size: 36px; font-weight: 800; }
+  .scorebox.adults .num { color: #1e3a5f; }
+  .scorebox.kids .num { color: #d62828; }
+  .scorebox .label { font-size: 12px; font-weight: 700; color: #555; margin-top: 2px; }
+  .turnbanner {
+    text-align: center;
+    font-size: 20px;
+    font-weight: 800;
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+  .turnbanner.adults { background: #1e3a5f; color: white; }
+  .turnbanner.kids { background: #d62828; color: white; }
+  #roundLabel {
+    text-align: center;
+    font-size: 13px;
+    color: #999;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  #promptArea {
+    text-align: center;
+    background: #f5f5f5;
+    border-radius: 12px;
+    padding: 28px 16px;
+    margin-bottom: 16px;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #promptText {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e3a5f;
+  }
+  #promptHidden {
+    font-size: 16px;
+    color: #999;
+  }
+  #timer {
+    font-size: 44px;
+    font-weight: 800;
+    text-align: center;
+    color: #1e3a5f;
+    margin-bottom: 16px;
+    font-variant-numeric: tabular-nums;
+  }
+  button {
+    width: 100%;
+    font-size: 17px;
+    font-weight: 700;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    margin-top: 10px;
+    cursor: pointer;
+  }
+  button.reveal { background: #f1c40f; color: #1a1a1a; }
+  button.start { background: #2e7d32; }
+  button.correct { background: #2e7d32; }
+  button.correct:disabled, button.skip:disabled { background: #ccc; }
+  button.skip { background: #999; }
+  button.reset { background: #666; font-size: 13px; padding: 10px; }
+  button:active { opacity: 0.85; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🎨 Chungfest 2026</h1>
+  <div class="sub">Drawing Challenge</div>
+
+  <div class="scorebar">
+    <div class="scorebox adults">
+      <div class="num" id="adultScore">0</div>
+      <div class="label">ADULTS</div>
+    </div>
+    <div class="scorebox kids">
+      <div class="num" id="kidScore">0</div>
+      <div class="label">KIDS</div>
+    </div>
+  </div>
+
+  <div id="turnBanner" class="turnbanner adults">ADULTS' TURN TO DRAW</div>
+  <div id="roundLabel">Round 1</div>
+
+  <div id="promptArea">
+    <div id="promptHidden">Artist: tap "Reveal Prompt" and look only you.</div>
+    <div id="promptText" style="display:none;"></div>
+  </div>
+
+  <div id="timer">60s</div>
+
+  <button class="reveal" id="revealBtn" onclick="revealPrompt()">REVEAL PROMPT</button>
+  <button class="skip" id="dontKnowBtn" onclick="dontKnowIt()" disabled>🔄 DON'T KNOW IT — NEW PROMPT</button>
+  <button class="start" id="startBtn" onclick="startTimer()" disabled>START 60s TIMER</button>
+  <button class="correct" id="correctBtn" onclick="scorePoint()" disabled>✅ TEAM GUESSED IT!</button>
+  <button class="skip" id="skipBtn" onclick="nextRound(false)" disabled>⏭️ NO GUESS — NEXT TURN</button>
+  <button class="reset" onclick="resetGame()">Reset Game</button>
+</div>
+
+<script>
+// Two prompt pools: kids draw from an easier pool, adults get the full range.
+const KIDS_PROMPTS = [
+  "Cat", "Dog", "Sun", "Tree", "Pizza", "Football", "Star", "Fish",
+  "Bird", "House", "Car", "Boat", "Apple", "Ice cream cone", "Rainbow",
+  "Robot", "Dinosaur", "Elephant", "Pikachu", "Kayak", "Tent",
+  "Mountain", "Campfire", "Butterfly", "Snowman", "Ghost", "Balloon",
+  "Turtle", "Octopus", "Penguin", "Airplane", "Rocket ship",
+  "Ash Ketchum's hat", "Ninja headband",
+  "Pirate ship", "Treasure chest", "Dragon", "Unicorn", "Mermaid",
+  "Volcano erupting", "Roller coaster", "Sandcastle", "Waterfall",
+  "Firetruck", "School bus", "Birthday cake", "Superhero cape",
+  "Soccer goal", "Spaceship landing"
+];
+
+const ADULT_PROMPTS = [
+  "Wild Blue Acres cabin", "Kayak race", "Home run derby swing",
+  "Golf swing", "Soccer penalty kick", "Foosball goal", "Pinball machine",
+  "Air hockey table", "Ping pong paddle", "Relay race baton handoff",
+  "Chungfest trophy", "Headbands card on forehead", "Jackbox controller",
+  "Straw Hat", "Zoro's three swords", "Tanjiro's sword", "Naruto's headband",
+  "Sailor Moon's tiara", "Totoro", "Pikachu",
+  "Kangaroo", "Giraffe", "Octopus", "Penguin", "Lion",
+  "S'mores over a campfire", "Cabin at the lake", "Jigsaw puzzle",
+  "Sunscreen bottle", "Beach ball", "Fishing rod", "Grill with burgers",
+  "Lawn chair", "Cooler with ice", "Flip flops", "Tug of war rope",
+  "Bonfire", "Board game", "Deck of cards", "Frisbee", "Fireworks"
+];
+
+let shuffledKids = [];
+let shuffledAdults = [];
+let kidsIndex = 0;
+let adultsIndex = 0;
+let currentTeam = 'adults';
+let roundNum = 1;
+let adultScore = 0;
+let kidScore = 0;
+let timerInterval;
+let timeLeft = 60;
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+shuffledKids = shuffle(KIDS_PROMPTS);
+shuffledAdults = shuffle(ADULT_PROMPTS);
+
+function updateBanner() {
+  const banner = document.getElementById('turnBanner');
+  if (currentTeam === 'adults') {
+    banner.textContent = "ADULTS' TURN TO DRAW";
+    banner.className = 'turnbanner adults';
+  } else {
+    banner.textContent = "KIDS' TURN TO DRAW";
+    banner.className = 'turnbanner kids';
+  }
+  document.getElementById('roundLabel').textContent = 'Round ' + roundNum;
+}
+
+function getNextPrompt() {
+  if (currentTeam === 'kids') {
+    if (kidsIndex >= shuffledKids.length) {
+      shuffledKids = shuffle(KIDS_PROMPTS);
+      kidsIndex = 0;
+    }
+    return shuffledKids[kidsIndex++];
+  } else {
+    if (adultsIndex >= shuffledAdults.length) {
+      shuffledAdults = shuffle(ADULT_PROMPTS);
+      adultsIndex = 0;
+    }
+    return shuffledAdults[adultsIndex++];
+  }
+}
+
+function revealPrompt() {
+  const pText = document.getElementById('promptText');
+  document.getElementById('promptHidden').style.display = 'none';
+  pText.style.display = 'block';
+  pText.textContent = getNextPrompt();
+
+  document.getElementById('revealBtn').disabled = true;
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('dontKnowBtn').disabled = false;
+}
+
+function dontKnowIt() {
+  const pText = document.getElementById('promptText');
+  pText.textContent = getNextPrompt();
+}
+
+function startTimer() {
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('dontKnowBtn').disabled = true;
+  document.getElementById('correctBtn').disabled = false;
+  document.getElementById('skipBtn').disabled = false;
+
+  timeLeft = 60;
+  document.getElementById('timer').textContent = timeLeft + 's';
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    document.getElementById('timer').textContent = timeLeft + 's';
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      nextRound(false);
+    }
+  }, 1000);
+}
+
+function scorePoint() {
+  clearInterval(timerInterval);
+  if (currentTeam === 'adults') {
+    adultScore++;
+    document.getElementById('adultScore').textContent = adultScore;
+  } else {
+    kidScore++;
+    document.getElementById('kidScore').textContent = kidScore;
+  }
+  nextRound(true);
+}
+
+function nextRound(scored) {
+  clearInterval(timerInterval);
+  currentTeam = currentTeam === 'adults' ? 'kids' : 'adults';
+  roundNum++;
+  updateBanner();
+
+  document.getElementById('promptHidden').style.display = 'block';
+  document.getElementById('promptHidden').textContent = 'Artist: tap "Reveal Prompt" and look only you.';
+  document.getElementById('promptText').style.display = 'none';
+  document.getElementById('timer').textContent = '60s';
+
+  document.getElementById('revealBtn').disabled = false;
+  document.getElementById('dontKnowBtn').disabled = true;
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('correctBtn').disabled = true;
+  document.getElementById('skipBtn').disabled = true;
+}
+
+function resetGame() {
+  if (!confirm('Reset the whole drawing game?')) return;
+  clearInterval(timerInterval);
+  shuffledKids = shuffle(KIDS_PROMPTS);
+  shuffledAdults = shuffle(ADULT_PROMPTS);
+  kidsIndex = 0;
+  adultsIndex = 0;
+  currentTeam = 'adults';
+  roundNum = 1;
+  adultScore = 0;
+  kidScore = 0;
+  document.getElementById('adultScore').textContent = 0;
+  document.getElementById('kidScore').textContent = 0;
+  updateBanner();
+  document.getElementById('promptHidden').style.display = 'block';
+  document.getElementById('promptHidden').textContent = 'Artist: tap "Reveal Prompt" and look only you.';
+  document.getElementById('promptText').style.display = 'none';
+  document.getElementById('timer').textContent = '60s';
+  document.getElementById('revealBtn').disabled = false;
+  document.getElementById('dontKnowBtn').disabled = true;
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('correctBtn').disabled = true;
+  document.getElementById('skipBtn').disabled = true;
+}
+
+updateBanner();
+</script>
+</body>
+</html>

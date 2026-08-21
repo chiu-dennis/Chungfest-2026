@@ -47,6 +47,32 @@
     border-color: white;
     transform: scale(1.15);
   }
+  #sizeRow {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+    align-items: center;
+  }
+  .sizeBtn {
+    flex: 0 0 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 3px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.15);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sizeBtn.active {
+    border-color: white;
+    background: rgba(255,255,255,0.3);
+  }
+  .sizeDot {
+    background: white;
+    border-radius: 50%;
+  }
   #canvasWrap {
     flex: 1;
     min-height: 0;
@@ -85,6 +111,7 @@
 <body>
   <div id="timer">90</div>
   <div id="colorRow"></div>
+  <div id="sizeRow"></div>
   <div id="canvasWrap">
     <canvas id="drawCanvas"></canvas>
   </div>
@@ -125,6 +152,33 @@ function selectColor(c, btn) {
 
 buildColorRow();
 
+const SIZES = [3, 6, 10, 18];
+let currentSize = SIZES[1];
+
+function buildSizeRow() {
+  const row = document.getElementById('sizeRow');
+  SIZES.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'sizeBtn' + (i === 1 ? ' active' : '');
+    const dot = document.createElement('div');
+    dot.className = 'sizeDot';
+    dot.style.width = Math.min(s + 6, 28) + 'px';
+    dot.style.height = Math.min(s + 6, 28) + 'px';
+    btn.appendChild(dot);
+    btn.onclick = () => selectSize(s, btn);
+    row.appendChild(btn);
+  });
+}
+
+function selectSize(s, btn) {
+  currentSize = s;
+  ctx.lineWidth = s;
+  document.querySelectorAll('.sizeBtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+buildSizeRow();
+
 function resizeCanvas() {
   const rect = canvas.getBoundingClientRect();
   const imgData = (canvas.width > 0 && canvas.height > 0) ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
@@ -132,7 +186,7 @@ function resizeCanvas() {
   canvas.height = rect.height;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  ctx.lineWidth = 6;
+  ctx.lineWidth = currentSize;
   ctx.strokeStyle = currentColor;
   ctx.fillStyle = 'white';
   ctx.fillRect(0, 0, canvas.width, canvas.height);

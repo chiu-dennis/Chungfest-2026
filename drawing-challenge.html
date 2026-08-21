@@ -113,6 +113,16 @@
   button.skip { background: #999; }
   button.reset { background: #666; font-size: 13px; padding: 10px; }
   button:active { opacity: 0.85; }
+  #drawCanvas {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: white;
+    border: 2px solid #1e3a5f;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    touch-action: none;
+    display: block;
+  }
 </style>
 </head>
 <body>
@@ -139,11 +149,14 @@
     <div id="promptText" style="display:none;"></div>
   </div>
 
-  <div id="timer">60s</div>
+  <div id="timer">90s</div>
+
+  <canvas id="drawCanvas" style="display:none;"></canvas>
+  <button class="skip" id="clearBtn" onclick="clearCanvas()" style="display:none;">🧹 CLEAR DRAWING</button>
 
   <button class="reveal" id="revealBtn" onclick="revealPrompt()">REVEAL PROMPT</button>
   <button class="skip" id="dontKnowBtn" onclick="dontKnowIt()" disabled>🔄 DON'T KNOW IT — NEW PROMPT</button>
-  <button class="start" id="startBtn" onclick="startTimer()" disabled>START 60s TIMER</button>
+  <button class="start" id="startBtn" onclick="startTimer()" disabled>START 90s TIMER</button>
   <button class="correct" id="correctBtn" onclick="scorePoint()" disabled>✅ TEAM GUESSED IT!</button>
   <button class="skip" id="skipBtn" onclick="nextRound(false)" disabled>⏭️ NO GUESS — NEXT TURN</button>
   <button class="reset" onclick="resetGame()">Reset Game</button>
@@ -187,7 +200,7 @@ let roundNum = 1;
 let adultScore = 0;
 let kidScore = 0;
 let timerInterval;
-let timeLeft = 60;
+let timeLeft = 90;
 
 function shuffle(arr) {
   const a = arr.slice();
@@ -200,6 +213,77 @@ function shuffle(arr) {
 
 shuffledKids = shuffle(KIDS_PROMPTS);
 shuffledAdults = shuffle(ADULT_PROMPTS);
+
+// --- Drawing canvas setup ---
+const canvas = document.getElementById('drawCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let lastX = 0, lastY = 0;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  const imgData = canvas.width > 0 ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#1e3a5f';
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (imgData) ctx.putImageData(imgData, 0, 0);
+}
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function startDraw(e) {
+  drawing = true;
+  const pos = getPos(e);
+  lastX = pos.x; lastY = pos.y;
+}
+
+function moveDraw(e) {
+  if (!drawing) return;
+  e.preventDefault();
+  const pos = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  lastX = pos.x; lastY = pos.y;
+}
+
+function endDraw() { drawing = false; }
+
+canvas.addEventListener('mousedown', startDraw);
+canvas.addEventListener('mousemove', moveDraw);
+canvas.addEventListener('mouseup', endDraw);
+canvas.addEventListener('mouseleave', endDraw);
+canvas.addEventListener('touchstart', startDraw);
+canvas.addEventListener('touchmove', moveDraw);
+canvas.addEventListener('touchend', endDraw);
+
+function clearCanvas() {
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function showCanvas() {
+  canvas.style.display = 'block';
+  document.getElementById('clearBtn').style.display = 'block';
+  resizeCanvas();
+  clearCanvas();
+}
+
+function hideCanvas() {
+  canvas.style.display = 'none';
+  document.getElementById('clearBtn').style.display = 'none';
+}
 
 function updateBanner() {
   const banner = document.getElementById('turnBanner');
@@ -250,8 +334,9 @@ function startTimer() {
   document.getElementById('dontKnowBtn').disabled = true;
   document.getElementById('correctBtn').disabled = false;
   document.getElementById('skipBtn').disabled = false;
+  showCanvas();
 
-  timeLeft = 60;
+  timeLeft = 90;
   document.getElementById('timer').textContent = timeLeft + 's';
   timerInterval = setInterval(() => {
     timeLeft--;
@@ -277,6 +362,7 @@ function scorePoint() {
 
 function nextRound(scored) {
   clearInterval(timerInterval);
+  hideCanvas();
   currentTeam = currentTeam === 'adults' ? 'kids' : 'adults';
   roundNum++;
   updateBanner();
@@ -284,7 +370,7 @@ function nextRound(scored) {
   document.getElementById('promptHidden').style.display = 'block';
   document.getElementById('promptHidden').textContent = 'Artist: tap "Reveal Prompt" and look only you.';
   document.getElementById('promptText').style.display = 'none';
-  document.getElementById('timer').textContent = '60s';
+  document.getElementById('timer').textContent = '90s';
 
   document.getElementById('revealBtn').disabled = false;
   document.getElementById('dontKnowBtn').disabled = true;
@@ -296,6 +382,7 @@ function nextRound(scored) {
 function resetGame() {
   if (!confirm('Reset the whole drawing game?')) return;
   clearInterval(timerInterval);
+  hideCanvas();
   shuffledKids = shuffle(KIDS_PROMPTS);
   shuffledAdults = shuffle(ADULT_PROMPTS);
   kidsIndex = 0;
@@ -310,7 +397,7 @@ function resetGame() {
   document.getElementById('promptHidden').style.display = 'block';
   document.getElementById('promptHidden').textContent = 'Artist: tap "Reveal Prompt" and look only you.';
   document.getElementById('promptText').style.display = 'none';
-  document.getElementById('timer').textContent = '60s';
+  document.getElementById('timer').textContent = '90s';
   document.getElementById('revealBtn').disabled = false;
   document.getElementById('dontKnowBtn').disabled = true;
   document.getElementById('startBtn').disabled = true;

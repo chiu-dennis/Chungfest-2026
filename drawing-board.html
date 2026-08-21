@@ -19,16 +19,34 @@
   }
   #timer {
     text-align: center;
-    font-size: 14vh;
+    font-size: 13vh;
     font-weight: 900;
     color: white;
     line-height: 1;
     font-variant-numeric: tabular-nums;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     flex-shrink: 0;
   }
   #timer.warning { color: #ffb400; }
   #timer.danger { color: #ff4d4d; }
+  #colorRow {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+  }
+  .colorBtn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.3);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .colorBtn.active {
+    border-color: white;
+    transform: scale(1.15);
+  }
   #canvasWrap {
     flex: 1;
     min-height: 0;
@@ -65,12 +83,13 @@
 </style>
 </head>
 <body>
-  <div id="timer">60</div>
+  <div id="timer">90</div>
+  <div id="colorRow"></div>
   <div id="canvasWrap">
     <canvas id="drawCanvas"></canvas>
   </div>
   <div id="controls">
-    <button id="startBtn" onclick="startTimer()">START 60s TIMER</button>
+    <button id="startBtn" onclick="startTimer()">START 90s TIMER</button>
     <button id="clearBtn" onclick="clearCanvas()">CLEAR</button>
     <button id="resetTimerBtn" onclick="resetTimer()">RESET</button>
   </div>
@@ -81,6 +100,31 @@ const ctx = canvas.getContext('2d');
 let drawing = false;
 let lastX = 0, lastY = 0;
 
+const COLORS = ['#1a1a1a', '#d62828', '#1e88e5', '#2e7d32', '#f39c12', '#8e44ad', '#e91e63', '#00897b'];
+let currentColor = COLORS[0];
+
+function buildColorRow() {
+  const row = document.getElementById('colorRow');
+  COLORS.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'colorBtn' + (i === 0 ? ' active' : '');
+    btn.style.background = c;
+    btn.style.padding = '0';
+    btn.style.flex = '0 0 44px';
+    btn.onclick = () => selectColor(c, btn);
+    row.appendChild(btn);
+  });
+}
+
+function selectColor(c, btn) {
+  currentColor = c;
+  ctx.strokeStyle = c;
+  document.querySelectorAll('.colorBtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+buildColorRow();
+
 function resizeCanvas() {
   const rect = canvas.getBoundingClientRect();
   const imgData = (canvas.width > 0 && canvas.height > 0) ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
@@ -89,7 +133,7 @@ function resizeCanvas() {
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   ctx.lineWidth = 6;
-  ctx.strokeStyle = '#1e3a5f';
+  ctx.strokeStyle = currentColor;
   ctx.fillStyle = 'white';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   if (imgData) ctx.putImageData(imgData, 0, 0);
@@ -138,7 +182,7 @@ function clearCanvas() {
 }
 
 // --- Timer ---
-let timeLeft = 60;
+let timeLeft = 90;
 let timerInterval = null;
 const timerEl = document.getElementById('timer');
 const startBtn = document.getElementById('startBtn');
@@ -166,7 +210,7 @@ function startTimer() {
 function resetTimer() {
   clearInterval(timerInterval);
   timerInterval = null;
-  timeLeft = 60;
+  timeLeft = 90;
   startBtn.disabled = false;
   renderTimer();
   clearCanvas();
